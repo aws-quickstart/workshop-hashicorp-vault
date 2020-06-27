@@ -1,0 +1,3 @@
+[submodule "terraform/submodule/tf-quickstart-hashicorp-vault"]
+	path = terraform/submodule/tf-quickstart-hashicorp-vault
+	url = git@github.com:aws-quickstart/tf-quickstart-hashicorp-vault.git
