@@ -1,18 +1,3 @@
-.settings/*
-.classpath
-.project
-.factorypath
-.attach_pid*
-.idea
-*.iml
-.sts4-cache/
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-_site/
-
 # Module directory in any sub-folder
 **/.terraform
 
