@@ -76,13 +76,13 @@ data "template_file" "setup-vault" {
   template = file("${path.module}/templates/vault-server.tpl")
 
   vars = {
-    vault_secrets_id   = aws_secretsmanager_secret.vault-secrets.arn
-    aws_region         = var.aws_region
-    kms_key            = "${aws_kms_key.vault_unseal.id}"
-    mysql_endpoint     = aws_instance.mysqlserver.private_ip
-    db_user            = var.db_user
-    db_password        = var.db_password
-    role_arn           = aws_iam_role.vault-client.arn
+    vault_secrets_id = aws_secretsmanager_secret.vault-secrets.arn
+    aws_region       = var.aws_region
+    kms_key          = "${aws_kms_key.vault_unseal.id}"
+    mysql_endpoint   = aws_instance.mysqlserver.private_ip
+    db_user          = var.db_user
+    db_password      = var.db_password
+    role_arn         = aws_iam_role.vault-client.arn
   }
 }
 
@@ -101,7 +101,7 @@ resource "aws_kms_alias" "vault_alias" {
 }
 
 resource "aws_secretsmanager_secret" "vault-secrets" {
-  name          = "${var.stack}-vault-secrets"
+  name = "${var.stack}-vault-secrets"
 }
 
 # data "aws_iam_role" "vault-client" {
@@ -137,11 +137,11 @@ data "template_file" "website" {
   template = file("${path.module}/templates/petclinic-app.tpl")
 
   vars = {
-    vault_server_addr  = aws_instance.vault-server.private_ip
-    mysql_endpoint     = aws_instance.mysqlserver.private_ip
-    db_name            = var.db_name
-    db_user            = var.db_user
-    db_password        = var.db_password
+    vault_server_addr = aws_instance.vault-server.private_ip
+    mysql_endpoint    = aws_instance.mysqlserver.private_ip
+    db_name           = var.db_name
+    db_user           = var.db_user
+    db_password       = var.db_password
   }
 }
 
