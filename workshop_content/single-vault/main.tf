@@ -77,6 +77,16 @@ resource "aws_instance" "vault-server" {
     Name    = "${var.stack}-vault-server"
     Project = var.stack
   }
+
+  provisioner "local-exec" {
+    command = "gremlin init -s autoconnect --tag instance_id=$EC2_NAME --tag owner=aws-workshop"
+
+    environment = {
+      GREMLIN_TEAM_ID     = var.gremlin_team_id
+      GREMLIN_TEAM_SECRET = var.gremlin_secret_key
+      EC2_NAME            = aws_instance.vault-server.tags["Name"]
+    }
+  }
 }
 
 data "template_file" "setup-vault" {
@@ -110,10 +120,6 @@ resource "aws_kms_alias" "vault_alias" {
 resource "aws_secretsmanager_secret" "vault-secrets" {
   name = "${var.stack}-vault-secrets-${random_id.rand.hex}"
 }
-
-# data "aws_iam_role" "vault-client" {
-#   name          = "${var.stack}-vault-client-role"
-# }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # WEBSITE INSTANCE
