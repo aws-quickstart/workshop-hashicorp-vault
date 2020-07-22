@@ -1,3 +1,13 @@
+variable "gremlin_team_id" {
+  description = "Gremlin Team ID "
+  type        = string
+}
+
+variable "gremlin_secret_key" {
+  description = "Gremlin Secret Key "
+  type        = string
+}
+
 variable "aws_region" {
   description = "The AWS region to create things in."
   default     = "us-east-1"
