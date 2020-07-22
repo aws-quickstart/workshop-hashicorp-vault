@@ -68,6 +68,7 @@ resource "aws_instance" "vault-server" {
   iam_instance_profile        = aws_iam_instance_profile.vault-server.id
   depends_on                  = [aws_instance.mysqlserver]
 
+
   ebs_block_device {
     device_name = "/dev/sda1"
     volume_type = "gp2"
@@ -78,28 +79,23 @@ resource "aws_instance" "vault-server" {
     Project = var.stack
   }
 
-  provisioner "local-exec" {
-    command = "gremlin init -s autoconnect --tag instance_id=$EC2_NAME --tag owner=aws-workshop"
-
-    environment = {
-      GREMLIN_TEAM_ID     = var.gremlin_team_id
-      GREMLIN_TEAM_SECRET = var.gremlin_secret_key
-      EC2_NAME            = aws_instance.vault-server.tags["Name"]
-    }
-  }
 }
 
 data "template_file" "setup-vault" {
   template = file("${path.module}/templates/vault-server.tpl")
 
   vars = {
-    vault_secrets_id = aws_secretsmanager_secret.vault-secrets.arn
-    aws_region       = var.aws_region
-    kms_key          = "${aws_kms_key.vault_unseal.id}"
-    mysql_endpoint   = aws_instance.mysqlserver.private_ip
-    db_user          = var.db_user
-    db_password      = var.db_password
-    role_arn         = aws_iam_role.vault-client.arn
+    vault_secrets_id    = aws_secretsmanager_secret.vault-secrets.arn
+    aws_region          = var.aws_region
+    kms_key             = "${aws_kms_key.vault_unseal.id}"
+    mysql_endpoint      = aws_instance.mysqlserver.private_ip
+    db_user             = var.db_user
+    db_password         = var.db_password
+    role_arn            = aws_iam_role.vault-client.arn
+    gremlin_team_id     = var.gremlin_team_id
+    gremlin_team_secret = var.gremlin_secret_key
+    gremlin_identifier  = "${var.stack}-vault-server"
+
   }
 }
 
