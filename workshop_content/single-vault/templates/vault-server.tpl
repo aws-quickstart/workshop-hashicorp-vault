@@ -11,6 +11,11 @@ curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip
 unzip awscliv2.zip
 sudo ./aws/install
 
+# Install Gremlin 
+sudo echo "deb https://deb.gremlin.com/ release non-free" | sudo tee /etc/apt/sources.list.d/gremlin.list
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 9CDB294B29A5B1E2E00C24C022E8EF3461A50EF6
+sudo apt-get update && sudo apt-get install -y gremlin gremlind
+
 #### Set up Vault Server ####
 export DEBIAN_FRONTEND=noninteractive
 sudo echo "127.0.0.1 $(hostname)" >> /etc/hosts
@@ -180,6 +185,11 @@ vault write database/config/mysql \
         username="${db_user}" \
         password="${db_password}"
 ###########################################
+
+
+
+
+
 
 
 
