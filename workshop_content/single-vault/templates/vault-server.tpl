@@ -17,9 +17,14 @@ apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 9CDB294B29A5B1E2E00C24C
 apt-get update && apt-get install -y gremlin gremlind
 
 export INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-export GREMLIN_TEAM_ID = ${gremlin_team_id}
-export GREMLIN_TEAM_SECRET  = ${gremlin_team_secret}
-export GREMLIN_IDENTIFIER	= ${gremlin_identifier}
+
+export GREMLIN_TEAM_ID=${gremlin_team_id}
+export GREMLIN_TEAM_SECRET=${gremlin_team_secret}
+export GREMLIN_IDENTIFIER="${gremlin_identifier} ($${INSTANCE_ID})"
+
+echo "GREMLIN_TEAM_SECRET: $${GREMLIN_TEAM_SECRET}"
+echo "GREMLIN_TEAM_ID: $${GREMLIN_TEAM_ID}"
+echo "GREMLIN_IDENTIFIER: $${GREMLIN_IDENTIFIER}"
 
 gremlin init -s autoconnect --tag instance_id=$${INSTANCE_ID} --tag owner=aws-workshop
 

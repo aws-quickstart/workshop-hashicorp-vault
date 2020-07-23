@@ -35,7 +35,7 @@ variable "client_instance_type" {
 
 variable "stack" {
   description = "Name of the stack."
-  default     = "Vault-Workshop"
+  default     = "aws-workshop"
 }
 
 variable "db_name" {

@@ -94,8 +94,7 @@ data "template_file" "setup-vault" {
     role_arn            = aws_iam_role.vault-client.arn
     gremlin_team_id     = var.gremlin_team_id
     gremlin_team_secret = var.gremlin_secret_key
-    gremlin_identifier  = "${var.stack}-vault-server"
-
+    gremlin_identifier  = "{var.stack} vault-server"
   }
 }
 
