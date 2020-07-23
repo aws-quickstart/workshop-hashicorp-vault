@@ -20,7 +20,7 @@ export INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id
 
 export GREMLIN_TEAM_ID=${gremlin_team_id}
 export GREMLIN_TEAM_SECRET=${gremlin_team_secret}
-export GREMLIN_IDENTIFIER="${gremlin_identifier} ($${INSTANCE_ID})"
+export GREMLIN_IDENTIFIER=${gremlin_identifier}
 
 echo "GREMLIN_TEAM_SECRET: $${GREMLIN_TEAM_SECRET}"
 echo "GREMLIN_TEAM_ID: $${GREMLIN_TEAM_ID}"
