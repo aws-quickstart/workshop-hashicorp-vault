@@ -1,12 +1,8 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Vault Server Outputs
 # ---------------------------------------------------------------------------------------------------------------------
-output "Vault_Server_HTTP_Address" {
-  value = "http://${aws_instance.vault-server.public_ip}:8200"
-}
-
-output "Vault_Server_Public_IP" {
-  value = aws_instance.vault-server.public_ip
+output "Load_Balancer_HTTP_Address" {
+  value = "http://${aws_lb.alb.dns_name}"
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -21,7 +17,7 @@ output "Web_Server_HTTP_Address" {
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# RDS MySql Outputs
+# MySql Outputs
 # ---------------------------------------------------------------------------------------------------------------------
 output "MySql_Url" {
   value = "jdbc:mysql://${aws_instance.mysqlserver.private_ip}:3306/${var.db_name}"

@@ -5,6 +5,7 @@ apt-get update
 apt-get install -qq -y \
     git \
     jq \
+    python \
     unzip > /dev/null 2>&1
 
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -28,7 +29,6 @@ echo "GREMLIN_IDENTIFIER: $${GREMLIN_IDENTIFIER}"
 
 gremlin init -s autoconnect --tag instance_id=$${INSTANCE_ID} --tag owner=aws-workshop
 
-
 #### Set up Vault Server ####
 export DEBIAN_FRONTEND=noninteractive
 sudo echo "127.0.0.1 $(hostname)" >> /etc/hosts
@@ -38,9 +38,10 @@ COMMENT="Hashicorp vault user"
 GROUP="vault"
 HOME="/srv/vault"
 
-# Get Private IP address
+# Get Instance Metadata
 PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
 PUBLIC_IP=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)
+INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
 
 user_ubuntu() {
   # UBUNTU user setup
@@ -65,14 +66,16 @@ user_ubuntu() {
 
 user_ubuntu
 
-VAULT_ZIP="vault_1.4.2_linux_amd64.zip"
-VAULT_URL="https://releases.hashicorp.com/vault/1.4.2/vault_1.4.2_linux_amd64.zip"
+VAULT_LOG_PATH="/opt/vault/logs"
+VAULT_ZIP="vault_1.5.0_linux_amd64.zip"
+VAULT_URL="https://releases.hashicorp.com/vault/1.5.0/vault_1.5.0_linux_amd64.zip"
 sudo curl --silent --output /tmp/$${VAULT_ZIP} $${VAULT_URL}
 sudo unzip -o /tmp/$${VAULT_ZIP} -d /usr/local/bin/
 sudo chmod 0755 /usr/local/bin/vault
 sudo chown vault:vault /usr/local/bin/vault
 sudo mkdir -pm 0755 /etc/vault.d
 sudo mkdir -pm 0755 /opt/vault
+sudo mkdir -pm 0755 /opt/vault/logs
 sudo chown vault:vault /opt/vault
 
 cat << EOF | sudo tee /lib/systemd/system/vault.service
@@ -92,25 +95,34 @@ Group=vault
 [Install]
 WantedBy=multi-user.target
 EOF
-###########################################
 
 cat << EOF | sudo tee /etc/vault.d/vault.hcl
-storage "file" {
-  path = "/opt/vault"
+storage "dynamodb" {
+  ha_enabled = "true"
+  region = "${aws_region}"
+  table = "${vault_dynamodb_table}"
 }
+
 listener "tcp" {
-  address     = "0.0.0.0:8200"
-  tls_disable = 1
+  address = "127.0.0.1:8199"
+  tls_disable = "true"
 }
+
+listener "tcp" {
+  address = "$${PRIVATE_IP}:8200"
+  cluster_address = "$${PRIVATE_IP}:8201"
+  tls_disable = "1"
+}
+
 seal "awskms" {
   region     = "${aws_region}"
   kms_key_id = "${kms_key}"
 }
-api_addr = "http://$${PUBLIC_IP}:8200"
+api_addr = "http://${vault_dns}"
+cluster_addr = "http://$${PRIVATE_IP}:8201"
 ui=true
 disable_mlock = true
 EOF
-
 
 sudo chmod 0664 /lib/systemd/system/vault.service
 sudo systemctl daemon-reload
@@ -118,9 +130,34 @@ sudo chown -R vault:vault /etc/vault.d
 sudo chmod -R 0644 /etc/vault.d/*
 ###########################################
 
+#### Set up Cloud Watch ####
+cloud_watch_log_config () {
+cat << EOF >/etc/awslogs-config-file
+[general]
+state_file = /var/awslogs/state/agent-state
+
+[/var/log/syslog]
+file = $${VAULT_LOG_PATH}/vault_audit.logs
+log_group_name = ${vault_log_group}
+log_stream_name = $${INSTANCE_ID}
+datetime_format = %b %d %H:%M:%S
+EOF
+}
+
+cloud_watch_logs () {
+  cloud_watch_log_config
+  curl -s https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py --output /usr/local/awslogs-agent-setup.py
+  python /usr/local/awslogs-agent-setup.py -n -r ${aws_region} -c /etc/awslogs-config-file
+  systemctl enable awslogs
+  systemctl start awslogs
+}
+
+cloud_watch_logs
+###########################################
+
 #### Set up Vault environment ####
 sudo tee -a /etc/environment <<EOF
-export VAULT_ADDR=http://127.0.0.1:8200
+export VAULT_ADDR="http://127.0.0.1:8199"
 export VAULT_SKIP_VERIFY=true
 EOF
 
@@ -129,18 +166,20 @@ source /etc/environment
 
 #### Start Vault server ###
 sudo systemctl enable vault
-sudo systemctl start vault
+sudo systemctl restart vault
 ###########################################
 
 #### Initialize Vault - Token in Clear txt ####
-until curl -fs -o /dev/null localhost:8200/v1/sys/init; do
+export VAULT_ADDR="http://127.0.0.1:8199"
+
+until curl -fs -o /dev/null localhost:8199/v1/sys/init; do
   echo "Waiting for Vault to start..."
   sleep 1
 done
 
-init=$(curl -fs localhost:8200/v1/sys/init | jq -r .initialized)
+init=$(vault operator init -status)
 
-if [ "$init" == "false" ]; then
+if [ "$init" != "Vault is initialized" ]; then
   echo "Initializing Vault"
   install -d -m 0755 -o vault -g vault /etc/vault
   SECRET_VALUE=$(vault operator init -recovery-shares=1 -recovery-threshold=1 | tee /etc/vault/vault-init.txt)
@@ -148,6 +187,7 @@ if [ "$init" == "false" ]; then
   aws secretsmanager put-secret-value --region "${aws_region}" --secret-id "${vault_secrets_id}" --secret-string "$${SECRET_VALUE}"
 else
   echo "Vault is already initialized"
+  exit 0
 fi
 
 sealed=$(curl -fs localhost:8200/v1/sys/seal-status | jq -r .sealed)
@@ -165,6 +205,8 @@ if [ "$sealed" == "true" ]; then
 else
   echo "Vault is already unsealed"
 fi
+
+vault audit enable file file_path="$${VAULT_LOG_PATH}/vault-audit.log"
 ###########################################
 
 #### Set up Vault Database backend ####
@@ -197,16 +239,13 @@ vault write database/config/mysql \
         connection_url="{{username}}:{{password}}@tcp(${mysql_endpoint}:3306)/" \
         username="${db_user}" \
         password="${db_password}"
+
+vault write database/static-roles/rotate-mysql-pass \
+        db_name=mysql \
+        rotation_statements="ALTER USER "{{name}}" IDENTIFIED BY '{{password}}';" \
+        username="${db_user}" \
+        rotation_period=60
 ###########################################
-
-
-
-
-
-
-
-
-
 
 
 
