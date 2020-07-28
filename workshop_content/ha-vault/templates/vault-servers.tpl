@@ -41,7 +41,6 @@ HOME="/srv/vault"
 # Get Instance Metadata
 PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
 PUBLIC_IP=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)
-INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
 
 user_ubuntu() {
   # UBUNTU user setup
@@ -66,7 +65,6 @@ user_ubuntu() {
 
 user_ubuntu
 
-VAULT_LOG_PATH="/opt/vault/logs"
 VAULT_ZIP="vault_1.5.0_linux_amd64.zip"
 VAULT_URL="https://releases.hashicorp.com/vault/1.5.0/vault_1.5.0_linux_amd64.zip"
 sudo curl --silent --output /tmp/$${VAULT_ZIP} $${VAULT_URL}
@@ -75,7 +73,6 @@ sudo chmod 0755 /usr/local/bin/vault
 sudo chown vault:vault /usr/local/bin/vault
 sudo mkdir -pm 0755 /etc/vault.d
 sudo mkdir -pm 0755 /opt/vault
-sudo mkdir -pm 0755 /opt/vault/logs
 sudo chown vault:vault /opt/vault
 
 cat << EOF | sudo tee /lib/systemd/system/vault.service
@@ -137,9 +134,9 @@ cat << EOF >/etc/awslogs-config-file
 state_file = /var/awslogs/state/agent-state
 
 [/var/log/syslog]
-file = $${VAULT_LOG_PATH}/vault_audit.logs
+file = /var/log/auth.log
 log_group_name = ${vault_log_group}
-log_stream_name = $${INSTANCE_ID}
+log_stream_name = ${vault_log_stream}
 datetime_format = %b %d %H:%M:%S
 EOF
 }
@@ -206,7 +203,7 @@ else
   echo "Vault is already unsealed"
 fi
 
-vault audit enable file file_path="$${VAULT_LOG_PATH}/vault-audit.log"
+vault audit enable syslog
 ###########################################
 
 #### Set up Vault Database backend ####
@@ -246,6 +243,3 @@ vault write database/static-roles/rotate-mysql-pass \
         username="${db_user}" \
         rotation_period=60
 ###########################################
-
-
-

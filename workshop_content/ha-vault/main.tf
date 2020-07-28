@@ -33,7 +33,7 @@ resource "aws_instance" "mysqlserver" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.client_instance_type
   user_data                   = data.template_file.mysqlserver.rendered
-  subnet_id                   = aws_subnet.public[1].id
+  subnet_id                   = aws_subnet.private[1].id
   key_name                    = var.keyPairName
   vpc_security_group_ids      = [aws_security_group.db-sg.id]
   associate_public_ip_address = true
@@ -101,11 +101,12 @@ resource "aws_launch_template" "vault_instance" {
     db_user              = var.db_user
     db_password          = var.db_password
     role_arn             = aws_iam_role.vault-client.arn
-    vault_dynamodb_table = var.dynamodb_table_name
-    vault_log_group      = aws_cloudwatch_log_group.vault_log_group.name
     gremlin_team_id      = var.gremlin_team_id
     gremlin_team_secret  = var.gremlin_secret_key
     gremlin_identifier   = "${var.stack} vault-server"
+    vault_dynamodb_table = var.dynamodb_table_name
+    vault_log_group      = aws_cloudwatch_log_group.vault_log_group.name
+    vault_log_stream     = aws_cloudwatch_log_stream.vault_log_stream.name
   }))
 }
 
@@ -158,6 +159,11 @@ resource "aws_cloudwatch_log_group" "vault_log_group" {
   }
 }
 
+resource "aws_cloudwatch_log_stream" "vault_log_stream" {
+  name           = "${var.stack}-vault-log-stream-${random_id.rand.hex}"
+  log_group_name = aws_cloudwatch_log_group.vault_log_group.name
+}
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 # WEBSITE INSTANCE
@@ -190,6 +196,7 @@ data "template_file" "website" {
   vars = {
     aws_region         = var.aws_region
     web_log_group      = aws_cloudwatch_log_group.web_log_group.name
+    web_log_stream     = aws_cloudwatch_log_stream.web_log_stream.name
     vault_server_addr  = aws_lb.alb.dns_name
     mysql_endpoint     = aws_instance.mysqlserver.private_ip
     db_name            = var.db_name
@@ -207,3 +214,7 @@ resource "aws_cloudwatch_log_group" "web_log_group" {
   }
 }
 
+resource "aws_cloudwatch_log_stream" "web_log_stream" {
+  name           = "${var.stack}-web-log-stream-${random_id.rand.hex}"
+  log_group_name = aws_cloudwatch_log_group.web_log_group.name
+}
