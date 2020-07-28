@@ -33,7 +33,7 @@ resource "aws_instance" "mysqlserver" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.client_instance_type
   user_data                   = data.template_file.mysqlserver.rendered
-  subnet_id                   = aws_subnet.public[1].id
+  subnet_id                   = aws_subnet.private[1].id
   key_name                    = var.keyPairName
   vpc_security_group_ids      = [aws_security_group.db-sg.id]
   associate_public_ip_address = true
