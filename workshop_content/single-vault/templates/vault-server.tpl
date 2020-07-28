@@ -5,6 +5,7 @@ apt-get update
 apt-get install -qq -y \
     git \
     jq \
+    python \
     unzip > /dev/null 2>&1
 
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -117,6 +118,32 @@ sudo chown -R vault:vault /etc/vault.d
 sudo chmod -R 0644 /etc/vault.d/*
 ###########################################
 
+#### Set up Cloud Watch ####
+cloud_watch_log_config () {
+cat << EOF >/etc/awslogs-config-file
+[general]
+state_file = /var/awslogs/state/agent-state
+
+[/var/log/syslog]
+file = /var/log/auth.log
+log_group_name = ${vault_log_group}
+log_stream_name = ${vault_log_stream}
+datetime_format = %b %d %H:%M:%S
+EOF
+}
+
+cloud_watch_logs () {
+  cloud_watch_log_config
+  curl -s https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py --output /usr/local/awslogs-agent-setup.py
+  python /usr/local/awslogs-agent-setup.py -n -r ${aws_region} -c /etc/awslogs-config-file
+  systemctl enable awslogs
+  systemctl start awslogs
+}
+
+cloud_watch_logs
+###########################################
+
+
 #### Set up Vault environment ####
 sudo tee -a /etc/environment <<EOF
 export VAULT_ADDR=http://127.0.0.1:8200
@@ -164,6 +191,8 @@ if [ "$sealed" == "true" ]; then
 else
   echo "Vault is already unsealed"
 fi
+
+vault audit enable syslog
 ###########################################
 
 #### Set up Vault Database backend ####
@@ -203,15 +232,3 @@ vault write database/static-roles/rotate-mysql-pass \
         username="${db_user}" \
         rotation_period=60
 ###########################################
-
-
-
-
-
-
-
-
-
-
-
-
