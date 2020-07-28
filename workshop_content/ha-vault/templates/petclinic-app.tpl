@@ -26,9 +26,6 @@ COMMENT="Hashicorp vault user"
 GROUP="vault"
 HOME="/srv/vault"
 
-# Get Instance Metadata
-INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
-
 user_ubuntu() {
   # UBUNTU user setup
   if ! getent group $${GROUP} >/dev/null
@@ -108,7 +105,7 @@ state_file = /var/awslogs/state/agent-state
 [/var/log/syslog]
 file = /var/log/syslog
 log_group_name = ${web_log_group}
-log_stream_name = $${INSTANCE_ID}
+log_stream_name = ${web_log_stream}
 datetime_format = %b %d %H:%M:%S
 EOF
 }

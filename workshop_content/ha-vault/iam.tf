@@ -135,6 +135,44 @@ data "aws_iam_policy_document" "vault-server" {
       aws_dynamodb_table.vault_storage.arn
     ]
   }
+
+  statement {
+    sid    = "VaultLogsSetup"
+    effect = "Allow"
+
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:DescribeLogStreams"
+    ]
+
+    resources = ["arn:aws:logs:*:*:*"]
+  }
+
+  statement {
+    sid    = "VaultCloudWatchSetup"
+    effect = "Allow"
+
+    actions = [
+      "cloudwatch:PutMetricData",
+      "cloudwatch:GetMetricStatistics",
+      "cloudwatch:ListMetrics"
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "VaultSSM"
+    effect = "Allow"
+
+    actions = [
+      "ssm:*"
+    ]
+
+    resources = ["*"]
+  }
 }
 
 data "aws_iam_policy_document" "vault-client" {
@@ -143,6 +181,44 @@ data "aws_iam_policy_document" "vault-client" {
     effect = "Allow"
 
     actions = ["ec2:DescribeInstances"]
+
+    resources = ["*"]
+  }
+  
+  statement {
+    sid    = "VaultLogsSetup"
+    effect = "Allow"
+
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:DescribeLogStreams"
+    ]
+
+    resources = ["arn:aws:logs:*:*:*"]
+  }
+
+  statement {
+    sid    = "VaultCloudWatchSetup"
+    effect = "Allow"
+
+    actions = [
+      "cloudwatch:PutMetricData",
+      "cloudwatch:GetMetricStatistics",
+      "cloudwatch:ListMetrics"
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "VaultSSM"
+    effect = "Allow"
+
+    actions = [
+      "ssm:*"
+    ]
 
     resources = ["*"]
   }
