@@ -48,8 +48,8 @@ user_ubuntu() {
 
 user_ubuntu
 
-VAULT_ZIP="vault_1.3.0_linux_amd64.zip"
-VAULT_URL="https://releases.hashicorp.com/vault/1.3.0/vault_1.3.0_linux_amd64.zip"
+VAULT_ZIP="vault_1.5.0_linux_amd64.zip"
+VAULT_URL="https://releases.hashicorp.com/vault/1.5.0/vault_1.5.0_linux_amd64.zip"
 sudo curl --silent --output /tmp/$${VAULT_ZIP} $${VAULT_URL}
 sudo unzip -o /tmp/$${VAULT_ZIP} -d /usr/local/bin/
 sudo chmod 0755 /usr/local/bin/vault
@@ -76,7 +76,6 @@ Group=vault
 WantedBy=multi-user.target
 EOF
 
-
 cat << EOF | sudo tee /etc/vault.d/vault.hcl
 storage "file" {
   path = "/opt/vault"
@@ -96,9 +95,6 @@ sudo chown -R vault:vault /etc/vault.d
 sudo chmod -R 0644 /etc/vault.d/*
 ###########################################
 
-
-#### Set Web  Server Environment #####
-export SPRING_PROFILES_ACTIVE=mysql
 
 #### Clone the Pet Clinic code from GitHub ####
 if [ ! -d /opt/spring-petclinic ]; then
@@ -157,7 +153,7 @@ sudo systemctl enable vault
 
 #### For Vault Auth Task #####
 cat << EOF > /home/ubuntu/vault-agent.hcl
-exit_after_auth = true
+exit_after_auth = false
 pid_file = "./pidfile"
 auto_auth {
    method "aws" {
@@ -173,13 +169,21 @@ auto_auth {
        }
    }
 }
+
 vault {
    address = "http://${vault_server_addr}:8200"
 }
+
 template {
-   source      = "/opt/spring-petclinic/target/classes/application-mysql.properties.tmpl"
+   source      = "/opt/spring-petclinic/src/main/resources/application-mysql.properties.tmpl"
+   destination = "/opt/spring-petclinic/src/main/resources/application-mysql.properties"
+}
+
+template {
+   source      = "/opt/spring-petclinic/src/main/resources/application-mysql.properties.tmpl"
    destination = "/opt/spring-petclinic/target/classes/application-mysql.properties"
 }
+
 EOF
 
 sudo chmod 0775 /home/ubuntu/vault-agent.hcl
@@ -187,14 +191,16 @@ sudo chmod 0775 /home/ubuntu/vault-agent.hcl
 
 
 #### Start Web  Server #####
+export SPRING_PROFILES_ACTIVE=mysql
+
 # Log into Vault using the AWS auth method
 vault login -method=aws role=client-role-iam
 
 # Start the Vault agent in /home/ubuntu
-cd /home/ubuntu
-vault agent -config=vault-agent.hcl -log-level=debug
+vault agent -config=/home/ubuntu/vault-agent.hcl -log-level=debug 2>&1 | logger &
 
 # Start the Web Server in /opt/spring-petclinic
 cd /opt/spring-petclinic
-/usr/bin/mvn spring-boot:run
+./mvnw clean package -DskipTests=true
+java -jar target/*.jar 2>&1 | logger &
 ###########################################

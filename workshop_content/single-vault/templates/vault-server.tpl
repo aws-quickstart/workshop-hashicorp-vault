@@ -28,7 +28,6 @@ echo "GREMLIN_IDENTIFIER: $${GREMLIN_IDENTIFIER}"
 
 gremlin init -s autoconnect --tag instance_id=$${INSTANCE_ID} --tag owner=aws-workshop
 
-
 #### Set up Vault Server ####
 export DEBIAN_FRONTEND=noninteractive
 sudo echo "127.0.0.1 $(hostname)" >> /etc/hosts
@@ -65,8 +64,8 @@ user_ubuntu() {
 
 user_ubuntu
 
-VAULT_ZIP="vault_1.4.2_linux_amd64.zip"
-VAULT_URL="https://releases.hashicorp.com/vault/1.4.2/vault_1.4.2_linux_amd64.zip"
+VAULT_ZIP="vault_1.5.0_linux_amd64.zip"
+VAULT_URL="https://releases.hashicorp.com/vault/1.5.0/vault_1.5.0_linux_amd64.zip"
 sudo curl --silent --output /tmp/$${VAULT_ZIP} $${VAULT_URL}
 sudo unzip -o /tmp/$${VAULT_ZIP} -d /usr/local/bin/
 sudo chmod 0755 /usr/local/bin/vault
@@ -197,6 +196,12 @@ vault write database/config/mysql \
         connection_url="{{username}}:{{password}}@tcp(${mysql_endpoint}:3306)/" \
         username="${db_user}" \
         password="${db_password}"
+
+vault write database/static-roles/rotate-mysql-pass \
+        db_name=mysql \
+        rotation_statements="ALTER USER "{{name}}" IDENTIFIED BY '{{password}}';" \
+        username="${db_user}" \
+        rotation_period=60
 ###########################################
 
 
