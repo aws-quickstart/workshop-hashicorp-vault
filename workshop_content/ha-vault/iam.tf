@@ -95,6 +95,46 @@ data "aws_iam_policy_document" "vault-server" {
 
     resources = ["*"]
   }
+  statement {
+    sid = "ManageTable"
+    effect = "Allow"
+    actions = [
+      "dynamodb:BatchGetItem",
+      "dynamodb:BatchWriteItem",
+      "dynamodb:PutItem",
+      "dynamodb:DescribeTable",
+      "dynamodb:DeleteItem",
+      "dynamodb:GetItem",
+      "dynamodb:ListTagsOfResource",
+      "dynamodb:UpdateItem",
+      "dynamodb:DescribeTimeToLive"
+    ]
+    resources = [
+      aws_dynamodb_table.vault_storage.arn
+    ]
+  }
+  statement {
+    sid = "GetStreamRecords"
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetRecords"
+    ]
+    resources = [
+      "${aws_dynamodb_table.vault_storage.arn}/stream/*"
+    ]
+  }
+  statement {
+    sid = "QueryAndScanTable"
+    effect = "Allow"
+    actions = [
+      "dynamodb:Scan",
+      "dynamodb:Query"
+    ]
+    resources = [
+      "${aws_dynamodb_table.vault_storage.arn}/index/*",
+      aws_dynamodb_table.vault_storage.arn
+    ]
+  }
 }
 
 data "aws_iam_policy_document" "vault-client" {
@@ -105,5 +145,18 @@ data "aws_iam_policy_document" "vault-client" {
     actions = ["ec2:DescribeInstances"]
 
     resources = ["*"]
+  }
+}
+
+data "aws_iam_policy_document" "asg_trust_policy" {
+  statement {
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+    actions = [
+      "sts:AssumeRole"
+    ]
   }
 }

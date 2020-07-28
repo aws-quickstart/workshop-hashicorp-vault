@@ -1,10 +1,11 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Randon String Generator
 # ---------------------------------------------------------------------------------------------------------------------
-#
 resource "random_id" "rand" {
   byte_length = 4
 }
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 # DATA FOR AMI
 # ---------------------------------------------------------------------------------------------------------------------
@@ -32,7 +33,7 @@ resource "aws_instance" "mysqlserver" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.client_instance_type
   user_data                   = data.template_file.mysqlserver.rendered
-  subnet_id                   = aws_subnet.private[1].id
+  subnet_id                   = aws_subnet.public[1].id
   key_name                    = var.keyPairName
   vpc_security_group_ids      = [aws_security_group.db-sg.id]
   associate_public_ip_address = true
@@ -55,47 +56,57 @@ data "template_file" "mysqlserver" {
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# VAULT SERVER INSTANCE
+# VAULT SERVER INSTANCES LAUNCH TEMPLATE
 # ---------------------------------------------------------------------------------------------------------------------
-resource "aws_instance" "vault-server" {
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = var.client_instance_type
-  user_data                   = data.template_file.setup-vault.rendered
-  subnet_id                   = aws_subnet.public[0].id
-  key_name                    = var.keyPairName
-  vpc_security_group_ids      = [aws_security_group.vault-server_sg.id]
-  associate_public_ip_address = true
-  iam_instance_profile        = aws_iam_instance_profile.vault-server.id
-  depends_on                  = [aws_instance.mysqlserver]
+resource "aws_launch_template" "vault_instance" {
+  name_prefix = "${var.stack}-lt-"
+  image_id = data.aws_ami.ubuntu.id
+  instance_type = var.client_instance_type
+  key_name = var.keyPairName
+  vpc_security_group_ids = [aws_security_group.vault-server_sg.id]
 
-
-  ebs_block_device {
-    device_name = "/dev/sda1"
-    volume_type = "gp2"
-    volume_size = "60"
-  }
-  tags = {
-    Name    = "${var.stack}-vault-server"
-    Project = var.stack
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.vault-server.arn
   }
 
-}
+  tag_specifications {
+    resource_type = "instance"
 
-data "template_file" "setup-vault" {
-  template = file("${path.module}/templates/vault-server.tpl")
-
-  vars = {
-    vault_secrets_id    = aws_secretsmanager_secret.vault-secrets.arn
-    aws_region          = var.aws_region
-    kms_key             = "${aws_kms_key.vault_unseal.id}"
-    mysql_endpoint      = aws_instance.mysqlserver.private_ip
-    db_user             = var.db_user
-    db_password         = var.db_password
-    role_arn            = aws_iam_role.vault-client.arn
-    gremlin_team_id     = var.gremlin_team_id
-    gremlin_team_secret = var.gremlin_secret_key
-    gremlin_identifier  = "${var.stack} vault-server"
+    tags = merge(
+      { "Name" = "${var.stack}-vault-server" },
+      { "Project" = var.stack }
+    )
   }
+
+  tag_specifications {
+    resource_type = "volume"
+    
+    tags = merge(
+      { "Name" = "${var.stack}-vault-server-volume" },
+      { "Project" = var.stack }
+    )
+  }
+
+  tags = merge(
+    { "Name" = "${var.stack}-vault-server-lt" },
+    { "Project" = var.stack }
+  )
+
+  user_data = base64encode(templatefile("${path.module}/templates/vault-servers.tpl", {
+    vault_secrets_id     = aws_secretsmanager_secret.vault-secrets.arn
+    aws_region           = var.aws_region
+    vault_dns            = aws_lb.alb.dns_name
+    kms_key              = "${aws_kms_key.vault_unseal.id}"
+    mysql_endpoint       = aws_instance.mysqlserver.private_ip
+    db_user              = var.db_user
+    db_password          = var.db_password
+    role_arn             = aws_iam_role.vault-client.arn
+    vault_dynamodb_table = var.dynamodb_table_name
+    vault_log_group      = aws_cloudwatch_log_group.vault_log_group.name
+    gremlin_team_id      = var.gremlin_team_id
+    gremlin_team_secret  = var.gremlin_secret_key
+    gremlin_identifier   = "${var.stack} vault-server"
+  }))
 }
 
 resource "aws_kms_key" "vault_unseal" {
@@ -116,6 +127,38 @@ resource "aws_secretsmanager_secret" "vault-secrets" {
   name = "${var.stack}-vault-secrets-${random_id.rand.hex}"
 }
 
+resource "aws_dynamodb_table" "vault_storage" {
+  name = var.dynamodb_table_name
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key = "Path"
+  range_key = "Key"
+
+  attribute {
+    name = "Path"
+    type = "S"
+  }
+
+  attribute {
+    name = "Key"
+    type = "S"
+  }
+
+  tags = {
+    Name = var.dynamodb_table_name
+    Project = var.stack
+  }
+}
+
+resource "aws_cloudwatch_log_group" "vault_log_group" {
+  name = "${var.stack}-vault-log-group-${random_id.rand.hex}"
+
+  tags = {
+    Name    = "${var.stack}-vault-log-group"
+    Project = var.stack
+  }
+}
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 # WEBSITE INSTANCE
 # ---------------------------------------------------------------------------------------------------------------------
@@ -128,7 +171,7 @@ resource "aws_instance" "website" {
   vpc_security_group_ids      = [aws_security_group.vault-client_sg.id]
   associate_public_ip_address = true
   iam_instance_profile        = aws_iam_instance_profile.vault-client.id
-  depends_on                  = [aws_instance.mysqlserver, aws_instance.vault-server]
+  depends_on                  = [aws_instance.mysqlserver, aws_autoscaling_group.vault-asg]
 
   ebs_block_device {
     device_name = "/dev/sda1"
@@ -145,11 +188,22 @@ data "template_file" "website" {
   template = file("${path.module}/templates/petclinic-app.tpl")
 
   vars = {
-    vault_server_addr = aws_instance.vault-server.private_ip
-    mysql_endpoint    = aws_instance.mysqlserver.private_ip
-    db_name           = var.db_name
-    db_user           = var.db_user
-    db_password       = var.db_password
+    aws_region         = var.aws_region
+    web_log_group      = aws_cloudwatch_log_group.web_log_group.name
+    vault_server_addr  = aws_lb.alb.dns_name
+    mysql_endpoint     = aws_instance.mysqlserver.private_ip
+    db_name            = var.db_name
+    db_user            = var.db_user
+    db_password        = var.db_password
+  }
+}
+
+resource "aws_cloudwatch_log_group" "web_log_group" {
+  name = "${var.stack}-web-log-group-${random_id.rand.hex}"
+
+  tags = {
+    Name    = "${var.stack}-web-log-group"
+    Project = var.stack
   }
 }
 
