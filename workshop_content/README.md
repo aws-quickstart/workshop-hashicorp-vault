@@ -104,3 +104,8 @@ Web_Server_Public_IP = 3.228.15.83
 
 ![Pet Clinic Web Server](images/pet_clinic.png)
 
+* Navigate AWS CloudWatch logs
+
+![CloudWatch Logs](images/cloud_watch.png)
+
+

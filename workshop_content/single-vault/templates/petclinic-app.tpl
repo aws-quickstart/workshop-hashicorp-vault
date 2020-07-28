@@ -11,6 +11,7 @@ apt-get install -qq -y \
     jq \
     unzip \
     default-jdk \
+    python \
     maven > /dev/null 2>&1
 
 apt-get clean
@@ -95,6 +96,30 @@ sudo chown -R vault:vault /etc/vault.d
 sudo chmod -R 0644 /etc/vault.d/*
 ###########################################
 
+#### Set up Cloud Watch ####
+cloud_watch_log_config () {
+cat << EOF >/etc/awslogs-config-file
+[general]
+state_file = /var/awslogs/state/agent-state
+
+[/var/log/syslog]
+file = /var/log/syslog
+log_group_name = ${web_log_group}
+log_stream_name = ${web_log_stream}
+datetime_format = %b %d %H:%M:%S
+EOF
+}
+
+cloud_watch_logs () {
+  cloud_watch_log_config
+  curl -s https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py --output /usr/local/awslogs-agent-setup.py
+  python /usr/local/awslogs-agent-setup.py -n -r ${aws_region} -c /etc/awslogs-config-file
+  systemctl enable awslogs
+  systemctl start awslogs
+}
+
+cloud_watch_logs
+###########################################
 
 #### Clone the Pet Clinic code from GitHub ####
 if [ ! -d /opt/spring-petclinic ]; then

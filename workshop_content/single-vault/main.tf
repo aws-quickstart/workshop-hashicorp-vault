@@ -1,7 +1,6 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Randon String Generator
 # ---------------------------------------------------------------------------------------------------------------------
-#
 resource "random_id" "rand" {
   byte_length = 4
 }
@@ -70,7 +69,6 @@ resource "aws_instance" "vault-server" {
   iam_instance_profile        = aws_iam_instance_profile.vault-server.id
   depends_on                  = [aws_instance.mysqlserver]
 
-
   ebs_block_device {
     device_name = "/dev/sda1"
     volume_type = "gp2"
@@ -80,23 +78,24 @@ resource "aws_instance" "vault-server" {
     Name    = "${var.stack}-vault-server"
     Project = var.stack
   }
-
 }
 
 data "template_file" "setup-vault" {
   template = file("${path.module}/templates/vault-server.tpl")
 
   vars = {
-    vault_secrets_id    = aws_secretsmanager_secret.vault-secrets.arn
-    aws_region          = var.aws_region
-    kms_key             = "${aws_kms_key.vault_unseal.id}"
-    mysql_endpoint      = aws_instance.mysqlserver.private_ip
-    db_user             = var.db_user
-    db_password         = var.db_password
-    role_arn            = aws_iam_role.vault-client.arn
+    vault_secrets_id   = aws_secretsmanager_secret.vault-secrets.arn
+    aws_region         = var.aws_region
+    kms_key            = "${aws_kms_key.vault_unseal.id}"
+    mysql_endpoint     = aws_instance.mysqlserver.private_ip
+    db_user            = var.db_user
+    db_password        = var.db_password
+    role_arn           = aws_iam_role.vault-client.arn
     gremlin_team_id     = var.gremlin_team_id
     gremlin_team_secret = var.gremlin_secret_key
     gremlin_identifier  = "${var.stack} vault-server"
+    vault_log_group    = aws_cloudwatch_log_group.vault_log_group.name
+    vault_log_stream   = aws_cloudwatch_log_stream.vault_log_stream.name
   }
 }
 
@@ -116,6 +115,20 @@ resource "aws_kms_alias" "vault_alias" {
 
 resource "aws_secretsmanager_secret" "vault-secrets" {
   name = "${var.stack}-vault-secrets-${random_id.rand.hex}"
+}
+
+resource "aws_cloudwatch_log_group" "vault_log_group" {
+  name = "${var.stack}-vault-log-group-${random_id.rand.hex}"
+
+  tags = {
+    Name    = "${var.stack}-vault-log-group"
+    Project = var.stack
+  }
+}
+
+resource "aws_cloudwatch_log_stream" "vault_log_stream" {
+  name           = "${var.stack}-vault-log-stream-${random_id.rand.hex}"
+  log_group_name = aws_cloudwatch_log_group.vault_log_group.name
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -147,11 +160,27 @@ data "template_file" "website" {
   template = file("${path.module}/templates/petclinic-app.tpl")
 
   vars = {
-    vault_server_addr = aws_instance.vault-server.private_ip
-    mysql_endpoint    = aws_instance.mysqlserver.private_ip
-    db_name           = var.db_name
-    db_user           = var.db_user
-    db_password       = var.db_password
+    aws_region         = var.aws_region
+    web_log_group      = aws_cloudwatch_log_group.web_log_group.name
+    web_log_stream     = aws_cloudwatch_log_stream.web_log_stream.name
+    vault_server_addr  = aws_instance.vault-server.private_ip
+    mysql_endpoint     = aws_instance.mysqlserver.private_ip
+    db_name            = var.db_name
+    db_user            = var.db_user
+    db_password        = var.db_password
   }
 }
 
+resource "aws_cloudwatch_log_group" "web_log_group" {
+  name = "${var.stack}-web-log-group-${random_id.rand.hex}"
+
+  tags = {
+    Name    = "${var.stack}-web-log-group"
+    Project = var.stack
+  }
+}
+
+resource "aws_cloudwatch_log_stream" "web_log_stream" {
+  name           = "${var.stack}-web-log-stream-${random_id.rand.hex}"
+  log_group_name = aws_cloudwatch_log_group.web_log_group.name
+}
