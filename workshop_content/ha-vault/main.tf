@@ -59,10 +59,10 @@ data "template_file" "mysqlserver" {
 # VAULT SERVER INSTANCES LAUNCH TEMPLATE
 # ---------------------------------------------------------------------------------------------------------------------
 resource "aws_launch_template" "vault_instance" {
-  name_prefix = "${var.stack}-lt-"
-  image_id = data.aws_ami.ubuntu.id
-  instance_type = var.client_instance_type
-  key_name = var.keyPairName
+  name_prefix            = "${var.stack}-lt-"
+  image_id               = data.aws_ami.ubuntu.id
+  instance_type          = var.client_instance_type
+  key_name               = var.keyPairName
   vpc_security_group_ids = [aws_security_group.vault-server_sg.id]
 
   iam_instance_profile {
@@ -80,7 +80,7 @@ resource "aws_launch_template" "vault_instance" {
 
   tag_specifications {
     resource_type = "volume"
-    
+
     tags = merge(
       { "Name" = "${var.stack}-vault-server-volume" },
       { "Project" = var.stack }
@@ -129,10 +129,10 @@ resource "aws_secretsmanager_secret" "vault-secrets" {
 }
 
 resource "aws_dynamodb_table" "vault_storage" {
-  name = var.dynamodb_table_name
+  name         = var.dynamodb_table_name
   billing_mode = "PAY_PER_REQUEST"
-  hash_key = "Path"
-  range_key = "Key"
+  hash_key     = "Path"
+  range_key    = "Key"
 
   attribute {
     name = "Path"
@@ -145,7 +145,7 @@ resource "aws_dynamodb_table" "vault_storage" {
   }
 
   tags = {
-    Name = var.dynamodb_table_name
+    Name    = var.dynamodb_table_name
     Project = var.stack
   }
 }
@@ -194,14 +194,14 @@ data "template_file" "website" {
   template = file("${path.module}/templates/petclinic-app.tpl")
 
   vars = {
-    aws_region         = var.aws_region
-    web_log_group      = aws_cloudwatch_log_group.web_log_group.name
-    web_log_stream     = aws_cloudwatch_log_stream.web_log_stream.name
-    vault_server_addr  = aws_lb.alb.dns_name
-    mysql_endpoint     = aws_instance.mysqlserver.private_ip
-    db_name            = var.db_name
-    db_user            = var.db_user
-    db_password        = var.db_password
+    aws_region        = var.aws_region
+    web_log_group     = aws_cloudwatch_log_group.web_log_group.name
+    web_log_stream    = aws_cloudwatch_log_stream.web_log_stream.name
+    vault_server_addr = aws_lb.alb.dns_name
+    mysql_endpoint    = aws_instance.mysqlserver.private_ip
+    db_name           = var.db_name
+    db_user           = var.db_user
+    db_password       = var.db_password
   }
 }
 

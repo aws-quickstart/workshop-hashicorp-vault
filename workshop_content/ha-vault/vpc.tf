@@ -147,13 +147,13 @@ data "aws_vpc_endpoint_service" "dynamodb" {
 
 resource "aws_vpc_endpoint" "dynamodb" {
   service_name = data.aws_vpc_endpoint_service.dynamodb.service_name
-  vpc_id = aws_vpc.main.id
+  vpc_id       = aws_vpc.main.id
 
   // Can also be done with "aws_vpc_endpoint_route_table_association"
   route_table_ids = [aws_route_table.private-route-table.0.id, aws_route_table.private-route-table.1.id]
-  
+
   tags = merge(
-    { "Name" = "${var.stack}-dynamodb-endpoint"},
+    { "Name" = "${var.stack}-dynamodb-endpoint" },
     { "Project" = var.stack }
   )
 
@@ -167,7 +167,7 @@ resource "aws_autoscaling_group" "vault-asg" {
   name_prefix = "${var.stack}-asg-"
 
   launch_template {
-    id = aws_launch_template.vault_instance.id
+    id      = aws_launch_template.vault_instance.id
     version = aws_launch_template.vault_instance.latest_version
   }
 
@@ -175,15 +175,15 @@ resource "aws_autoscaling_group" "vault-asg" {
 
   # All the same to keep at a fixed size
   desired_capacity = var.vault_instance_count
-  min_size = var.vault_instance_count
-  max_size = var.vault_instance_count
+  min_size         = var.vault_instance_count
+  max_size         = var.vault_instance_count
 
   # AKA the subnets to launch resources in 
   vpc_zone_identifier = [aws_subnet.public.0.id, aws_subnet.public.1.id]
 
   health_check_grace_period = 300
-  health_check_type = "EC2"
-  termination_policies = ["OldestLaunchTemplate"]
+  health_check_type         = "EC2"
+  termination_policies      = ["OldestLaunchTemplate"]
   wait_for_capacity_timeout = 0
 
   enabled_metrics = [
@@ -204,13 +204,13 @@ resource "aws_autoscaling_group" "vault-asg" {
 
   tags = [
     {
-      key = "Name"
-      value = "${var.stack}-vault-server"
+      key                 = "Name"
+      value               = "${var.stack}-vault-server"
       propagate_at_launch = true
     },
     {
-      key = "Project"
-      value = var.stack
+      key                 = "Project"
+      value               = var.stack
       propagate_at_launch = true
     }
   ]
@@ -223,42 +223,42 @@ resource "aws_lb" "alb" {
   // Can't give it a full name_prefix due to 32 character limit on LBs
   // and the fact that Terraform adds a 26 character random bit to the end.
   // https://github.com/terraform-providers/terraform-provider-aws/issues/1666
-  name_prefix = "vault-"
-  internal = var.private_mode
+  name_prefix        = "vault-"
+  internal           = var.private_mode
   load_balancer_type = "application"
-  security_groups = [aws_security_group.load_balancer.id]
-  subnets = aws_subnet.public.*.id
-  idle_timeout = 60
-  ip_address_type = "ipv4"
+  security_groups    = [aws_security_group.load_balancer.id]
+  subnets            = aws_subnet.public.*.id
+  idle_timeout       = 60
+  ip_address_type    = "ipv4"
 
   tags = merge(
-    { "Name" = "${var.stack}-alb"},
+    { "Name" = "${var.stack}-alb" },
     { "Project" = var.stack }
   )
 }
 
 ## Target Group
 resource "aws_lb_target_group" "alb_targets" {
-  name_prefix = "vault-"
-  port = 8200
-  protocol = "HTTP"
-  vpc_id = aws_vpc.main.id
+  name_prefix          = "vault-"
+  port                 = 8200
+  protocol             = "HTTP"
+  vpc_id               = aws_vpc.main.id
   deregistration_delay = 30
-  target_type = "instance"
+  target_type          = "instance"
 
   health_check {
-    enabled = true
-    interval = 10
-    path = "/v1/sys/health?activecode=200&standbycode=200&sealedcode=200&uninitcode=200"
-    protocol = "HTTP"
-    timeout = 5
-    healthy_threshold = 2
+    enabled             = true
+    interval            = 10
+    path                = "/v1/sys/health?activecode=200&standbycode=200&sealedcode=200&uninitcode=200"
+    protocol            = "HTTP"
+    timeout             = 5
+    healthy_threshold   = 2
     unhealthy_threshold = 2
-    matcher = "200-499"
+    matcher             = "200-499"
   }
 
   tags = merge(
-    { "Name" = "${var.stack}-tg"},
+    { "Name" = "${var.stack}-tg" },
     { "Project" = var.stack }
   )
 }
@@ -266,11 +266,11 @@ resource "aws_lb_target_group" "alb_targets" {
 ## Load Balancer Listener
 resource "aws_lb_listener" "front_end" {
   load_balancer_arn = aws_lb.alb.arn
-  port = 80
-  protocol = "HTTP"
+  port              = 80
+  protocol          = "HTTP"
 
   default_action {
-    type = "forward"
+    type             = "forward"
     target_group_arn = aws_lb_target_group.alb_targets.arn
   }
 }

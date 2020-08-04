@@ -35,26 +35,26 @@ variable "client_instance_type" {
 
 variable "private_mode" {
   description = "Whether or not the Vault deployment should be private."
-  type = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 variable "allowed_traffic_cidr_blocks" {
   description = "List of CIDR blocks allowed to send requests to your vault endpoint.  Defaults to EVERYWHERE.  You should probably limit this to your organization IP or VPC CIDR."
-  type = list(string)
-  default = ["0.0.0.0/0"]
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
 }
 
 variable "vault_instance_count" {
   description = "The number of EC2 instances to launch as vault instances.  Should be no less than 2."
-  type = number
-  default = 2
+  type        = number
+  default     = 2
 }
 
 variable "dynamodb_table_name" {
   description = "Name of the DynamoDB Table used for the Vault Storage Backend."
-  type = string
-  default = "vault_storage"
+  type        = string
+  default     = "vault_storage"
 }
 
 variable "stack" {
