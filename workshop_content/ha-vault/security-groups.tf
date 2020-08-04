@@ -161,4 +161,3 @@ resource "aws_security_group_rule" "load_balancer_allow_outbound" {
   cidr_blocks = ["0.0.0.0/0"]
   description = "Allow any outbound traffic."
 }
-
