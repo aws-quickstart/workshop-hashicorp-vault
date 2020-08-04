@@ -96,7 +96,7 @@ data "aws_iam_policy_document" "vault-server" {
     resources = ["*"]
   }
   statement {
-    sid = "ManageTable"
+    sid    = "ManageTable"
     effect = "Allow"
     actions = [
       "dynamodb:BatchGetItem",
@@ -114,7 +114,7 @@ data "aws_iam_policy_document" "vault-server" {
     ]
   }
   statement {
-    sid = "GetStreamRecords"
+    sid    = "GetStreamRecords"
     effect = "Allow"
     actions = [
       "dynamodb:GetRecords"
@@ -124,7 +124,7 @@ data "aws_iam_policy_document" "vault-server" {
     ]
   }
   statement {
-    sid = "QueryAndScanTable"
+    sid    = "QueryAndScanTable"
     effect = "Allow"
     actions = [
       "dynamodb:Scan",
@@ -184,7 +184,7 @@ data "aws_iam_policy_document" "vault-client" {
 
     resources = ["*"]
   }
-  
+
   statement {
     sid    = "VaultLogsSetup"
     effect = "Allow"

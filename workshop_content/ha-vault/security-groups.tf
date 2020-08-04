@@ -101,7 +101,7 @@ resource "aws_security_group" "db-sg" {
   name        = "${var.stack}-db-sg"
   description = "Access to the RDS instances from the VPC"
   vpc_id      = aws_vpc.main.id
-  
+
 
   ingress {
     from_port   = 3306
@@ -135,7 +135,7 @@ resource "aws_security_group" "db-sg" {
 resource "aws_security_group" "load_balancer" {
   name_prefix = "${var.stack}-alb-sg"
   description = "Firewall for the application load balancer fronting the vault instances."
-  vpc_id = aws_vpc.main.id
+  vpc_id      = aws_vpc.main.id
   tags = merge(
     { "Name" = "${var.stack}-alb-sg" },
     { "Project" = var.stack }
@@ -144,20 +144,20 @@ resource "aws_security_group" "load_balancer" {
 
 resource "aws_security_group_rule" "load_balancer_allow_80" {
   security_group_id = aws_security_group.load_balancer.id
-  type = "ingress"
-  protocol = "tcp"
-  from_port = 80
-  to_port = 80
-  cidr_blocks = var.allowed_traffic_cidr_blocks
-  description = "Allow HTTP traffic."
+  type              = "ingress"
+  protocol          = "tcp"
+  from_port         = 80
+  to_port           = 80
+  cidr_blocks       = var.allowed_traffic_cidr_blocks
+  description       = "Allow HTTP traffic."
 }
 
 resource "aws_security_group_rule" "load_balancer_allow_outbound" {
   security_group_id = aws_security_group.load_balancer.id
-  type = "egress"
-  protocol    = "-1"
-  from_port   = 0
-  to_port     = 0
-  cidr_blocks = ["0.0.0.0/0"]
-  description = "Allow any outbound traffic."
+  type              = "egress"
+  protocol          = "-1"
+  from_port         = 0
+  to_port           = 0
+  cidr_blocks       = ["0.0.0.0/0"]
+  description       = "Allow any outbound traffic."
 }
