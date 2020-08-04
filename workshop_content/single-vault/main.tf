@@ -84,18 +84,18 @@ data "template_file" "setup-vault" {
   template = file("${path.module}/templates/vault-server.tpl")
 
   vars = {
-    vault_secrets_id   = aws_secretsmanager_secret.vault-secrets.arn
-    aws_region         = var.aws_region
-    kms_key            = "${aws_kms_key.vault_unseal.id}"
-    mysql_endpoint     = aws_instance.mysqlserver.private_ip
-    db_user            = var.db_user
-    db_password        = var.db_password
-    role_arn           = aws_iam_role.vault-client.arn
+    vault_secrets_id    = aws_secretsmanager_secret.vault-secrets.arn
+    aws_region          = var.aws_region
+    kms_key             = "${aws_kms_key.vault_unseal.id}"
+    mysql_endpoint      = aws_instance.mysqlserver.private_ip
+    db_user             = var.db_user
+    db_password         = var.db_password
+    role_arn            = aws_iam_role.vault-client.arn
     gremlin_team_id     = var.gremlin_team_id
     gremlin_team_secret = var.gremlin_secret_key
     gremlin_identifier  = "${var.stack} vault-server"
-    vault_log_group    = aws_cloudwatch_log_group.vault_log_group.name
-    vault_log_stream   = aws_cloudwatch_log_stream.vault_log_stream.name
+    vault_log_group     = aws_cloudwatch_log_group.vault_log_group.name
+    vault_log_stream    = aws_cloudwatch_log_stream.vault_log_stream.name
   }
 }
 
@@ -160,14 +160,14 @@ data "template_file" "website" {
   template = file("${path.module}/templates/petclinic-app.tpl")
 
   vars = {
-    aws_region         = var.aws_region
-    web_log_group      = aws_cloudwatch_log_group.web_log_group.name
-    web_log_stream     = aws_cloudwatch_log_stream.web_log_stream.name
-    vault_server_addr  = aws_instance.vault-server.private_ip
-    mysql_endpoint     = aws_instance.mysqlserver.private_ip
-    db_name            = var.db_name
-    db_user            = var.db_user
-    db_password        = var.db_password
+    aws_region        = var.aws_region
+    web_log_group     = aws_cloudwatch_log_group.web_log_group.name
+    web_log_stream    = aws_cloudwatch_log_stream.web_log_stream.name
+    vault_server_addr = aws_instance.vault-server.private_ip
+    mysql_endpoint    = aws_instance.mysqlserver.private_ip
+    db_name           = var.db_name
+    db_user           = var.db_user
+    db_password       = var.db_password
   }
 }
 
