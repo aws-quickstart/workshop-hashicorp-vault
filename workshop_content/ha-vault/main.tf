@@ -129,7 +129,7 @@ resource "aws_secretsmanager_secret" "vault-secrets" {
 }
 
 resource "aws_dynamodb_table" "vault_storage" {
-  name         = "${var.dynamodb_table_name}-${random_id.rand.hex}"
+  name         = var.dynamodb_table_name
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "Path"
   range_key    = "Key"
