@@ -3,34 +3,34 @@
 
 ## Vault Server IAM Config
 resource "aws_iam_instance_profile" "vault-server" {
-  name = "${var.stack}-vault-server-instance-profile-${random_id.rand.hex}"
+  name = "${var.stack}-vault-server-instance-profile"
   role = aws_iam_role.vault-server.name
 }
 
 resource "aws_iam_role" "vault-server" {
-  name               = "${var.stack}-vault-server-role-${random_id.rand.hex}"
+  name               = "${var.stack}-vault-server-role"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 
 resource "aws_iam_role_policy" "vault-server" {
-  name   = "${var.stack}-vault-server-role-policy-${random_id.rand.hex}"
+  name   = "${var.stack}-vault-server-role-policy"
   role   = aws_iam_role.vault-server.id
   policy = data.aws_iam_policy_document.vault-server.json
 }
 
 # Vault Client IAM Config
 resource "aws_iam_instance_profile" "vault-client" {
-  name = "${var.stack}-vault-client-instance-profile-${random_id.rand.hex}"
+  name = "${var.stack}-vault-client-instance-profile"
   role = aws_iam_role.vault-client.name
 }
 
 resource "aws_iam_role" "vault-client" {
-  name               = "${var.stack}-vault-client-role-${random_id.rand.hex}"
+  name               = "${var.stack}-vault-client-role"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 
 resource "aws_iam_role_policy" "vault-client" {
-  name   = "${var.stack}-vault-client-role-policy-${random_id.rand.hex}"
+  name   = "${var.stack}-vault-client-role-policy"
   role   = aws_iam_role.vault-client.id
   policy = data.aws_iam_policy_document.vault-client.json
 }
