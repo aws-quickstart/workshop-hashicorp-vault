@@ -115,12 +115,12 @@ resource "aws_kms_key" "vault_unseal" {
   deletion_window_in_days = 10
 
   tags = {
-    Name = "vault-kms-unseal-${var.stack}-vault-server"
+    Name = "vault-kms-unseal-${var.stack}-vault-server-${random_id.rand.hex}"
   }
 }
 
 resource "aws_kms_alias" "vault_alias" {
-  name          = "alias/vault-kms-unseal-${var.stack}-vault-server"
+  name          = "alias/vault-kms-unseal-${var.stack}-vault-server-${random_id.rand.hex}"
   target_key_id = aws_kms_key.vault_unseal.key_id
 }
 
@@ -129,7 +129,7 @@ resource "aws_secretsmanager_secret" "vault-secrets" {
 }
 
 resource "aws_dynamodb_table" "vault_storage" {
-  name         = var.dynamodb_table_name
+  name         = "${var.dynamodb_table_name}-${random_id.rand.hex}"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "Path"
   range_key    = "Key"
